@@ -308,12 +308,10 @@ Definition norm_union_F : forall p : regex * regex,
                 {r : regex | size_regex r <= size_2regex p'}), 
     {r : regex | size_regex r <= size_2regex p} :=
  fun p norm_union =>
-   match ar (fst p) as a' 
-   return ({r | size_regex r <= size_2regex p}) with
+   match ar (fst p) with
      arE _ eq1 => exist _ (snd p) (th1 p)
    | arU _ u v eq1 =>
-     match ar (snd p) as b' return
-       ({r | size_regex r <= size_2regex p}) with
+     match ar (snd p) with
        arE _ eq2 => exist _ (Union u v) (th2' _ _ _ eq1)
      | _ => exist _ (proj1_sig 
              (norm_union (u, 
@@ -325,19 +323,26 @@ Definition norm_union_F : forall p : regex * regex,
              (th5' _ _ _ eq1 
                  (proj1_sig (norm_union (v, snd p)
                                (th3' _ _ _ eq1)))
-                 _
+                 (proj2_sig (norm_union (v, snd p)
+                               (th3' _ _ _ eq1)))
                  (proj1_sig
                      (norm_union 
                           (u, proj1_sig (norm_union (v, snd p)
                                           (th3' _ _ _ eq1)))
                    (th4' _ _ _ eq1 (th3' _ _ _ eq1) 
                    (proj1_sig (norm_union (v, snd p) (th3' _ _ _ eq1)))
-                   _))) _)
+                   (proj2_sig (norm_union (v, snd p) (th3' _ _ _ eq1))))))
+                 (proj2_sig
+                     (norm_union 
+                          (u, proj1_sig (norm_union (v, snd p)
+                                          (th3' _ _ _ eq1)))
+                   (th4' _ _ _ eq1 (th3' _ _ _ eq1) 
+                   (proj1_sig (norm_union (v, snd p) (th3' _ _ _ eq1)))
+                   (proj2_sig (norm_union (v, snd p) (th3' _ _ _ eq1)))))))
      end
    | arO _ d1 d2 =>
-     match ar (snd p) as b'
-       return ({r | size_regex r <= size_2regex p}) with
-       arE _ eq2 => exist _ (snd p) (th1 _)
+     match ar (snd p) with
+       arE _ eq2 => exist _ (fst p) (th11' _)
      | arU _ v w eq2 =>
        if eq_regex_dec (fst p) v then
           exist _ (Union v w) (th7' _ _ _ eq2)
@@ -345,11 +350,11 @@ Definition norm_union_F : forall p : regex * regex,
         exist _ (Union (fst p) (Union v w)) (th8' _ _ _ eq2)
        else exist _ (Union v (proj1_sig (norm_union (fst p, w)
                (th9' _ _ _ eq2))))
-              (th10' _ _ _ eq2 (proj1_sig (norm_union (fst p, w)
-               (th9' _ _ _ eq2)))
-(* there should be an underscore '_' after this comment
-   to avoid an unsatisfactory error message. *)
-                )
+              (th10' _ _ _ eq2
+                 (proj1_sig (norm_union (fst p, w)
+                       (th9' _ _ _ eq2)))
+                 (proj2_sig (norm_union (fst p, w)
+                       (th9' _ _ _ eq2))))
      | arO _ d1 d2 =>
        if eq_regex_dec (fst p) (snd p) then
          exist _ (fst p) (th11' _)
@@ -358,54 +363,6 @@ Definition norm_union_F : forall p : regex * regex,
        else exist _ (Union (snd p) (fst p)) (th13' _)
      end
    end.
-
-Definition norm_union_F : forall p : regex * regex,
-   forall g : (forall p', order p' p -> 
-                {r : regex | size_regex r <= size_2regex p'}), 
-    {r : regex | size_regex r <= size_2regex p} :=
- fun p norm_union =>
-   match abstract_regex (fst p) as a' 
-   return (abstract_regex (fst p) = a' ->
-          {r | size_regex r <= size_2regex p}) with
-     aEmpty => fun eq1 => exist _ (snd p) (th1 p)
-   | aUnion u v => fun eq1 =>
-     match abstract_regex (snd p) as b' return
-       (abstract_regex (snd p) = b' ->
-          {r | size_regex r <= size_2regex p}) with
-       aEmpty => fun eq2 => exist _ (Union u v) (th2 _ _ _ eq1)
-     | _ =>
-         fun eq2 => exist _ (proj1_sig 
-             (norm_union (u, 
-                 proj1_sig (norm_union (v, snd p) 
-                 (th3 _ _ _ eq1)))
-                 (th4 _ _ _ eq1 (th3 _ _ _ eq1) norm_union))) 
-             (th5 _ _ _ eq1 norm_union (th3 _ _ _ eq1)
-                 (th4 _ _ _ eq1 (th3 _ _ _ eq1) norm_union))
-     end (refl_equal _)
-   | aOther u =>
-     fun eq1 =>
-     match abstract_regex (snd p) as b'
-       return (abstract_regex (snd p) = b' ->
-              {r | size_regex r <= size_2regex p}) with
-       aEmpty => fun eq2 => exist _ u (th6 _ _ eq1 eq2)
-     | aUnion v w =>
-       fun eq2 =>
-       if eq_regex_dec u v then
-          exist _ (Union v w) (th7 _ _ _ eq2)
-       else if le_regex u v then
-        exist _ (Union u (Union v w)) (th8 _ _ _ _ eq1 eq2)
-       else exist _ (Union v (proj1_sig (norm_union (u, w)
-               (th9 _ _ _ _ eq1 eq2)))) (th10 _ _ _ _ eq1 eq2 norm_union
-                                          (th9 _ _ _ _ eq1 eq2))
-     | aOther v =>
-       fun eq2 =>
-       if eq_regex_dec u v then
-         exist _ u (th11 _ _ eq1)
-       else if le_regex u v then
-         exist _ (Union u v) (th12 _ _ _ eq1 eq2)
-       else exist _ (Union v u) (th13 _ _ _ eq1 eq2)
-     end (refl_equal _)
-   end (refl_equal _).
 
 Lemma well_founded_order : well_founded order.
 Proof.
@@ -423,42 +380,6 @@ Definition norm_union_1 : forall p : regex*regex,
 
 Definition norm_union u v : regex := proj1_sig (norm_union_1 (u, v)).
 
-Program Fixpoint norm_union1 u v {measure (u, v) (order)} 
-: {r | size_regex r <= size_2regex (u, v)} :=
-    match abstract_regex u as a' 
-   return ({r | size_regex r <= size_2regex (u, v)}) with
-     aEmpty => exist _ u _
-   | aUnion u1 v1 => 
-     match abstract_regex v as b' return
-       ({r | size_regex r <= size_2regex (u, v)}) with
-       aEmpty => exist _ (Union u1 v1) _
-     | _ =>
-         exist _ (proj1_sig 
-             (norm_union1 u1
-                 (proj1_sig (norm_union1 v1 v)))) _
-     end
-   | aOther u =>
-     match abstract_regex v as b'
-       return ({r | size_regex r <= size_2regex (u, v)}) with
-       aEmpty => exist _ u _
-     | aUnion v1 w1 =>
-       if eq_regex_dec u v1 then
-          exist _ (Union v1 w1) _
-       else if le_regex u v1 then
-        exist _ (Union u (Union v1 w1)) _
-       else exist _ (Union v1 (proj1_sig (norm_union1 u w1))) _
-     | aOther v =>
-       if eq_regex_dec u v then
-         exist _ u _
-       else if le_regex u v then
-         exist _ (Union u v) _
-       else exist _ (Union v u) _
-     end
-   end.
-Proof.
-Next Obligation. lia. Qed.
-Next Obligation. (* this shows a proof that un feasible. *)
-
 Lemma norm_union_eqn1 p :
   norm_union_1 p =
   norm_union_F p (fun p' (_ : order p' p) => norm_union_1 p').
@@ -466,8 +387,27 @@ Proof.
 unfold norm_union_1.
 apply (Init.Wf.Fix_eq well_founded_order
           (fun p => {r | size_regex r <= size_2regex p})).
-intros x f g fg; unfold norm_union_F.
-case (abstract_regex (fst x)).
+intros x F G fg; unfold norm_union_F.
+case (ar (fst x)).
+    reflexivity.
+  intros u1 v1 eq1; case (ar (snd x)).
+      reflexivity.
+    intros u2 v2 eq2.
+    rewrite (fg (v1, snd x)).
+    rewrite (fg (u1, _)); reflexivity.
+  intros d1 d2.
+  rewrite (fg (v1, _)).
+  rewrite (fg (u1, _)); reflexivity.
+intros d1 d2; case (ar (snd x)).
+    reflexivity.
+  intros u2 v2 eq2; case (eq_regex_dec (fst x) u2).
+    reflexivity.
+  intros fstxnu2; case (le_regex (fst x) u2).
+    reflexivity.
+  rewrite fg; reflexivity.
+reflexivity.
+Qed.
+
 Lemma norm_union_eqn u v :
   norm_union u v = 
   match u, v with
@@ -485,3 +425,14 @@ Lemma norm_union_eqn u v :
                                  then Union u v
                                  else Union v u
   end.
+Proof.
+unfold norm_union at 1.
+rewrite norm_union_eqn1; unfold norm_union_F.
+simpl fst; simpl snd.
+destruct u; destruct v; try reflexivity;
+ simpl ar; lazy iota beta;
+ match goal with |- context [eq_regex_dec ?A ?B] =>
+   case (eq_regex_dec A B);[reflexivity | ];
+   case (le_regex A B); reflexivity
+ end.
+Qed.
