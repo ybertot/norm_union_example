@@ -347,6 +347,8 @@ Definition norm_union_F : forall p : regex * regex,
                (th9' _ _ _ eq2))))
               (th10' _ _ _ eq2 (proj1_sig (norm_union (fst p, w)
                (th9' _ _ _ eq2)))
+(* there should be an underscore '_' after this comment
+   to avoid an unsatisfactory error message. *)
                 )
      | arO _ d1 d2 =>
        if eq_regex_dec (fst p) (snd p) then
